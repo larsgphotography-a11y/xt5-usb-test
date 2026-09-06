@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PhotoGuide – Fujifilm X‑T5 WebUSB Probe</title>
+<style>
+  :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  body { margin: 0; background: #f5f5f5; color: #151515; }
+  main { max-width: 760px; margin: 0 auto; padding: 18px; }
+  .card { background: white; border-radius: 16px; padding: 18px; margin: 12px 0; box-shadow: 0 1px 8px rgba(0,0,0,.08); }
+  h1 { font-size: 1.45rem; margin: 0 0 8px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  button { width: 100%; padding: 14px; border: 0; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  button.primary { background: #111; color: white; }
+  button.secondary { background: #e9e9e9; color: #111; margin-top: 8px; }
+  button:disabled { opacity: .45; cursor: default; }
+  .status { font-weight: 700; }
+  .ok { color: #147a31; }
+  .bad { color: #a51e1e; }
+  .warn { color: #8a5b00; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #111; color: #eee; padding: 12px; border-radius: 12px; font-size: .78rem; max-height: 45vh; overflow: auto; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  small { color: #666; }
+  .row { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid #eee; padding:7px 0; }
+  .row:last-child { border-bottom:0; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Fujifilm X‑T5 WebUSB Probe</h1>
+    <p>This page performs a <strong>read-only PTP capability test</strong>. It does not overwrite any C1–C7 recipe.</p>
+    <div class="row"><span>HTTPS / secure context</span><span id="secure"></span></div>
+    <div class="row"><span>WebUSB available</span><span id="webusb"></span></div>
+    <div class="row"><span>Target vendor</span><span><code>Fujifilm 0x04CB</code></span></div>
+  </div>
+
+  <div class="card">
+    <h2>1. Connect camera</h2>
+    <p><small>On the X‑T5 select <strong>USB RAW CONV./BACKUP RESTORE</strong>, connect a USB‑C data cable, turn the camera on, then tap below.</small></p>
+    <button id="connect" class="primary">Connect Fujifilm camera</button>
+    <button id="disconnect" class="secondary" disabled>Disconnect</button>
+  </div>
+
+  <div class="card">
+    <h2>Results</h2>
+    <div class="row"><span>USB device opened</span><span id="opened">—</span></div>
+    <div class="row"><span>PTP interface 0x06</span><span id="ptp">—</span></div>
+    <div class="row"><span>Bulk OUT / IN endpoints</span><span id="eps">—</span></div>
+    <div class="row"><span>PTP session</span><span id="session">—</span></div>
+    <div class="row"><span>Camera model</span><span id="model">—</span></div>
+    <div class="row"><span>Fuji C-slot property 0xD18C</span><span id="slots">—</span></div>
+    <div class="row"><span>Live Film Simulation read 0xD192</span><span id="film">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Diagnostic log</h2>
+    <pre id="log"></pre>
+  </div>
+</main>
+
+<script>
+(() => {
+  const FUJI_VID = 0x04CB;
+  const PTP_CLASS = 0x06;
+  const OPEN_SESSION = 0x1002;
+  const CLOSE_SESSION = 0x1003;
+  const GET_DEVICE_INFO = 0x1001;
+  const GET_DEVICE_PROP_VALUE = 0x1015;
+  const RESPONSE_OK = 0x2001;
+  const RESPONSE_SESSION_ALREADY_OPEN = 0x201E;
+  const PROP_SLOT_SELECTOR = 0xD18C;
+  const PROP_FILM_SIM = 0xD192;
+
+  let device = null;
+  let ifaceNumber = null;
+  let bulkIn = null;
+  let bulkOut = null;
+  let tx = 1;
+  let sessionOpen = false;
+
+  const $ = id => document.getElementById(id);
+  const log = (...args) => {
+    const line = args.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(' ');
+    $('log').textContent += line + '\n';
+    $('log').scrollTop = $('log').scrollHeight;
+  };
+  const set = (id, text, cls='') => {
+    const el = $(id); el.textContent = text; el.className = cls;
+  };
+  const hex = n => '0x' + Number(n).toString(16).toUpperCase().padStart(4,'0');
+
+  set('secure', window.isSecureContext ? '✓' : '✗', window.isSecureContext ? 'ok' : 'bad');
+  set('webusb', ('usb' in navigator) ? '✓' : '✗', ('usb' in navigator) ? 'ok' : 'bad');
+
+  function commandContainer(code, transactionId, params=[]) {
+    const ab = new ArrayBuffer(12 + params.length * 4);
+    const dv = new DataView(ab);
+    dv.setUint32(0, ab.byteLength, true);
+    dv.setUint16(4, 1, true); // command
+    dv.setUint16(6, code, true);
+    dv.setUint32(8, transactionId, true);
+    params.forEach((p, i) => dv.setUint32(12 + i*4, p, true));
+    return ab;
+  }
+
+  function parseHeader(dv) {
+    if (!dv || dv.byteLength < 12) throw new Error('PTP container shorter than 12 bytes');
+    return {
+      length: dv.getUint32(0, true),
+      type: dv.getUint16(4, true),
+      code: dv.getUint16(6, true),
+      tx: dv.getUint32(8, true)
+    };
+  }
+
+  async function readContainer() {
+    const first = await device.transferIn(bulkIn, 16384);
+    if (!first.data) throw new Error('USB IN returned no data');
+    let bytes = new Uint8Array(first.data.buffer, first.data.byteOffset, first.data.byteLength);
+    if (bytes.byteLength < 12) throw new Error('Short PTP header');
+    let header = parseHeader(new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength));
+    let all = new Uint8Array(header.length);
+    all.set(bytes.slice(0, Math.min(bytes.length, header.length)), 0);
+    let pos = Math.min(bytes.length, header.length);
+
+    while (pos < header.length) {
+      const r = await device.transferIn(bulkIn, Math.min(16384, header.length - pos));
+      if (!r.data) throw new Error('USB IN ended early');
+      const chunk = new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength);
+      all.set(chunk.slice(0, Math.min(chunk.length, header.length-pos)), pos);
+      pos += Math.min(chunk.length, header.length-pos);
+    }
+    return new DataView(all.buffer);
+  }
+
+  async function ptpNoData(code, params=[]) {
+    const id = tx++;
+    await device.transferOut(bulkOut, commandContainer(code, id, params));
+    const resp = await readContainer();
+    const h = parseHeader(resp);
+    if (h.type !== 3 || h.tx !== id) throw new Error(`Unexpected PTP response: type=${h.type}, tx=${h.tx}, expected=${id}`);
+    return h.code;
+  }
+
+  async function ptpDataIn(code, params=[]) {
+    const id = tx++;
+    await device.transferOut(bulkOut, commandContainer(code, id, params));
+    const data = await readContainer();
+    const dh = parseHeader(data);
+    if (dh.type !== 2 || dh.tx !== id) throw new Error(`Unexpected PTP data container: type=${dh.type}, tx=${dh.tx}`);
+    const resp = await readContainer();
+    const rh = parseHeader(resp);
+    if (rh.type !== 3 || rh.tx !== id || rh.code !== RESPONSE_OK) {
+      throw new Error(`PTP response ${hex(rh.code)} for command ${hex(code)}`);
+    }
+    return new DataView(data.buffer, data.byteOffset + 12, dh.length - 12);
+  }
+
+  function readPtpString(dv, state) {
+    const count = dv.getUint8(state.o); state.o += 1;
+    if (count === 0) return '';
+    let s = '';
+    for (let i=0; i<count-1; i++) {
+      s += String.fromCharCode(dv.getUint16(state.o, true)); state.o += 2;
+    }
+    state.o += 2; // terminal UTF-16 null
+    return s;
+  }
+
+  function readU16Array(dv, state) {
+    const count = dv.getUint32(state.o, true); state.o += 4;
+    const a = [];
+    for (let i=0; i<count; i++) { a.push(dv.getUint16(state.o, true)); state.o += 2; }
+    return a;
+  }
+
+  function parseDeviceInfo(dv) {
+    const s = {o:0};
+    const info = {};
+    info.standardVersion = dv.getUint16(s.o, true); s.o += 2;
+    info.vendorExtensionId = dv.getUint32(s.o, true); s.o += 4;
+    info.vendorExtensionVersion = dv.getUint16(s.o, true); s.o += 2;
+    info.vendorExtensionDesc = readPtpString(dv, s);
+    info.functionalMode = dv.getUint16(s.o, true); s.o += 2;
+    info.operations = readU16Array(dv, s);
+    info.events = readU16Array(dv, s);
+    info.properties = readU16Array(dv, s);
+    info.captureFormats = readU16Array(dv, s);
+    info.imageFormats = readU16Array(dv, s);
+    info.manufacturer = readPtpString(dv, s);
+    info.model = readPtpString(dv, s);
+    info.deviceVersion = readPtpString(dv, s);
+    info.serial = readPtpString(dv, s);
+    return info;
+  }
+
+  async function safeClose() {
+    try {
+      if (device && sessionOpen) {
+        const code = await ptpNoData(CLOSE_SESSION);
+        log('CLOSE_SESSION:', hex(code));
+      }
+    } catch (e) {
+      log('CloseSession warning:', e.message);
+    }
+    sessionOpen = false;
+    try { if (device && ifaceNumber !== null) await device.releaseInterface(ifaceNumber); } catch {}
+    try { if (device && device.opened) await device.close(); } catch {}
+    device = null; ifaceNumber = null; bulkIn = null; bulkOut = null;
+    $('disconnect').disabled = true;
+  }
+
+  $('connect').addEventListener('click', async () => {
+    $('log').textContent = '';
+    if (!window.isSecureContext) return log('ERROR: Page must be served via HTTPS.');
+    if (!('usb' in navigator)) return log('ERROR: navigator.usb is unavailable in this browser.');
+
+    try {
+      log('Requesting Fujifilm USB device...');
+      device = await navigator.usb.requestDevice({ filters: [{ vendorId: FUJI_VID }] });
+      log(`Selected: ${device.manufacturerName || ''} ${device.productName || ''} VID=${hex(device.vendorId)} PID=${hex(device.productId)}`);
+
+      await device.open();
+      set('opened', '✓', 'ok');
+      if (!device.configuration) await device.selectConfiguration(1);
+
+      let found = null;
+      for (const iface of device.configuration.interfaces) {
+        for (const alt of iface.alternates) {
+          log(`Interface ${iface.interfaceNumber}, alt ${alt.alternateSetting}, class=${hex(alt.interfaceClass)}, subclass=${hex(alt.interfaceSubclass)}, protocol=${hex(alt.interfaceProtocol)}`);
+          if (!found && alt.interfaceClass === PTP_CLASS) found = { iface, alt };
+        }
+      }
+      if (!found) throw new Error('No Still Image/PTP interface class 0x06. Check X-T5 connection mode.');
+
+      ifaceNumber = found.iface.interfaceNumber;
+      if (found.alt.alternateSetting !== 0) {
+        await device.selectAlternateInterface(ifaceNumber, found.alt.alternateSetting);
+      }
+      await device.claimInterface(ifaceNumber);
+      set('ptp', `✓ interface ${ifaceNumber}`, 'ok');
+
+      const activeAlt = device.configuration.interfaces.find(i => i.interfaceNumber === ifaceNumber).alternate;
+      for (const ep of activeAlt.endpoints) {
+        log(`Endpoint ${ep.endpointNumber}: ${ep.direction} ${ep.type}, packet=${ep.packetSize}`);
+        if (ep.type === 'bulk' && ep.direction === 'in') bulkIn = ep.endpointNumber;
+        if (ep.type === 'bulk' && ep.direction === 'out') bulkOut = ep.endpointNumber;
+      }
+      if (bulkIn == null || bulkOut == null) throw new Error('PTP bulk IN/OUT endpoints not found.');
+      set('eps', `✓ OUT ${bulkOut} / IN ${bulkIn}`, 'ok');
+
+      let rc = await ptpNoData(OPEN_SESSION, [1]);
+      if (rc === RESPONSE_OK || rc === RESPONSE_SESSION_ALREADY_OPEN) {
+        sessionOpen = true;
+        set('session', rc === RESPONSE_OK ? '✓ opened' : '✓ already open', 'ok');
+      } else {
+        throw new Error(`OPEN_SESSION returned ${hex(rc)}`);
+      }
+
+      const rawInfo = await ptpDataIn(GET_DEVICE_INFO);
+      const info = parseDeviceInfo(rawInfo);
+      log('Manufacturer:', info.manufacturer);
+      log('Model:', info.model);
+      log('Device version:', info.deviceVersion);
+      log('Supported properties:', info.properties.map(hex).join(', '));
+      set('model', info.model || device.productName || '(unknown)', 'ok');
+
+      const hasSlots = info.properties.includes(PROP_SLOT_SELECTOR);
+      set('slots', hasSlots ? '✓ supported' : '✗ not advertised', hasSlots ? 'ok' : 'bad');
+
+      if (info.properties.includes(PROP_FILM_SIM)) {
+        try {
+          const liveFilm = await ptpDataIn(GET_DEVICE_PROP_VALUE, [PROP_FILM_SIM]);
+          let valueText = `${liveFilm.byteLength} bytes`;
+          if (liveFilm.byteLength >= 2) valueText += ` / raw ${hex(liveFilm.getUint16(0,true))}`;
+          set('film', `✓ ${valueText}`, 'ok');
+          log('Live Film Simulation raw value:', valueText);
+        } catch (e) {
+          set('film', 'read failed', 'warn');
+          log('Live Film Simulation read failed:', e.message);
+        }
+      } else {
+        set('film', 'property not advertised', 'warn');
+      }
+
+      $('disconnect').disabled = false;
+      log('');
+      log(hasSlots
+        ? 'PASS: Browser-level PTP access and Fujifilm custom-slot property are available. Next step: C1-C7 backup/read test.'
+        : 'PARTIAL: PTP works, but custom-slot selector 0xD18C was not advertised.');
+    } catch (e) {
+      log('ERROR:', e.name ? `${e.name}: ${e.message}` : String(e));
+      if (String(e).includes('claim') || String(e).includes('interface')) {
+        log('Likely meaning: Android/Chrome can see the X-T5 but cannot claim its PTP interface; use a native Android USB bridge instead.');
+      }
+      await safeClose();
+    }
+  });
+
+  $('disconnect').addEventListener('click', async () => {
+    await safeClose();
+    log('Disconnected.');
+  });
+
+  navigator.usb?.addEventListener('disconnect', async e => {
+    if (device && e.device === device) {
+      log('USB cable/camera disconnected.');
+      await safeClose();
+    }
+  });
+})();
+</script>
+</body>
+</html>
