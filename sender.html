@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>PhotoGuide Camera Sender — X‑T5</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--bg:#f4f4f1;--card:#fff;--text:#171717;--muted:#6f6f6a;--line:#e8e8e3;--ok:#19783b;--warn:#8a5d00;--bad:#a32020;--soft:#efefec}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}main{max-width:840px;margin:auto;padding:16px 14px 52px}
+.hero{padding:8px 4px 4px}.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+h1{font-size:1.7rem;line-height:1.12;margin:6px 0}h2{font-size:1.08rem;margin:0 0 10px}h3{font-size:1rem;margin:0 0 8px}p{line-height:1.45}
+.card{background:var(--card);border-radius:18px;padding:17px;margin:12px 0;box-shadow:0 1px 8px rgba(0,0,0,.06)}
+.notice{background:#fff8e6;border:1px solid #efdfad}.success{background:#edf9f0;border:1px solid #b8dfc2}
+.row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+.value{text-align:right;font-weight:700}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.muted{color:var(--muted)}
+button{width:100%;border:0;border-radius:13px;padding:14px 15px;font-weight:800;font-size:1rem;cursor:pointer}.primary{background:#111;color:#fff}.secondary{background:#ececea;color:#111;margin-top:8px}.dangerBtn{background:#8f1d1d;color:#fff}.ghost{background:#fff;border:1px solid var(--line)}
+button:disabled{opacity:.42;cursor:default}
+select,input[type=file]{width:100%;padding:13px;border-radius:12px;border:1px solid #d9d9d4;background:#fff;font-size:1rem}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.tab{background:#ececea;color:#111}.tab.active{background:#111;color:#fff}
+.hidden{display:none!important}.box{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chip{padding:6px 9px;border-radius:999px;background:var(--soft);font-size:.78rem;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:.9rem}.grid div:nth-child(even){text-align:right;font-weight:700}
+.progress{height:9px;background:#ececea;border-radius:999px;overflow:hidden;margin:12px 0 4px}.progress>div{height:100%;width:0;background:#111;transition:width .2s}
+.slotline{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}.slothead{display:flex;align-items:center;gap:10px}.badge{background:#111;color:#fff;border-radius:9px;min-width:42px;height:32px;display:grid;place-items:center;font-weight:850}
+label.check{display:flex;gap:10px;align-items:flex-start;margin:12px 0;font-size:.93rem;line-height:1.35}label.check input{margin-top:3px;transform:scale(1.16)}
+pre{white-space:pre-wrap;word-break:break-word;background:#111;color:#eee;padding:12px;border-radius:13px;font-size:.74rem;max-height:42vh;overflow:auto}
+small{color:var(--muted)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+</head>
+<body>
+<main>
+<div class="hero">
+  <div class="eyebrow">TravelGuide / PhotoGuide · Camera Sender</div>
+  <h1>Fujifilm X‑T5 Recipe Transfer</h1>
+  <p class="muted">Stage 4 prototype: send one recipe or a complete seven-slot pack, with automatic backup, verification, and DR/ISO fallback.</p>
+</div>
+
+<div class="card notice">
+  <strong>Before connecting</strong>
+  <p style="margin-bottom:6px">On your Huawei / Leitzphone: enable <strong>OTG</strong>.</p>
+  <p style="margin-bottom:6px">On the X‑T5: <strong>USB RAW CONV./BACKUP RESTORE</strong>.</p>
+  <p style="margin-bottom:0"><strong>Recommended:</strong> put the ISO dial on <strong>A</strong>. For recipes using DR200/DR400, the target C-slot should ideally have ISO Auto saved so the DR value can be accepted.</p>
+</div>
+
+<div class="card">
+  <h2>1 · Connect camera</h2>
+  <div class="row"><span>HTTPS</span><span id="https" class="value">—</span></div>
+  <div class="row"><span>WebUSB</span><span id="webusb" class="value">—</span></div>
+  <div class="row"><span>Camera</span><span id="camera" class="value">Not connected</span></div>
+  <button id="connect" class="primary" style="margin-top:12px">Connect X‑T5</button>
+  <button id="disconnect" class="secondary" disabled>Disconnect</button>
+</div>
+
+<div class="card">
+  <h2>2 · Transfer mode</h2>
+  <div class="tabs">
+    <button id="tabSingle" class="tab active">Single Recipe</button>
+    <button id="tabPack" class="tab">Full 7‑Slot Pack</button>
+  </div>
+
+  <div id="singleMode">
+    <p><strong>Load a PhotoGuide recipe JSON</strong></p>
+    <input id="recipeFile" type="file" accept=".json,application/json">
+    <select id="singleSlot" style="margin-top:10px">
+      <option value="1">C1</option><option value="2">C2</option><option value="3">C3</option>
+      <option value="4">C4</option><option value="5">C5</option><option value="6">C6</option><option value="7">C7</option>
+    </select>
+    <div id="recipePreview"></div>
+  </div>
+
+  <div id="packMode" class="hidden">
+    <p><strong>Load a PhotoGuide 7-slot pack JSON</strong></p>
+    <input id="packFile" type="file" accept=".json,application/json">
+    <div id="packPreview"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>3 · Backup</h2>
+  <p><small>A fresh camera backup is required before transfer. Single mode backs up the target slot; Pack mode backs up all seven slots.</small></p>
+  <button id="backupBtn" class="primary" disabled>Create camera backup</button>
+  <div class="progress"><div id="backupBar"></div></div>
+  <div id="backupText" class="muted" style="font-size:.83rem">Connect camera and load a recipe or pack.</div>
+  <button id="exportBackup" class="secondary" disabled>Export backup JSON</button>
+</div>
+
+<div class="card">
+  <h2>4 · Review & send</h2>
+  <div id="preflight" class="box muted">Nothing ready to send yet.</div>
+  <label class="check"><input id="confirmSend" type="checkbox" disabled><span>I understand this will overwrite the selected X‑T5 custom slot(s). I have created the backup above.</span></label>
+  <button id="sendBtn" class="dangerBtn" disabled>Send to X‑T5</button>
+  <div class="progress"><div id="sendBar"></div></div>
+  <div id="sendText" class="muted" style="font-size:.83rem"></div>
+</div>
+
+<div id="resultCard" class="card hidden">
+  <h2>Transfer result</h2>
+  <div id="resultSummary"></div>
+  <div id="resultSlots"></div>
+  <button id="exportReport" class="secondary" disabled>Export transfer report</button>
+</div>
+
+<div class="card">
+  <h2>Diagnostics</h2>
+  <details><summary>Show technical log</summary><pre id="log"></pre></details>
+</div>
+</main>
+
+<script>
+(() => {
+const FUJI=0x04CB,PTP=0x06,GET_INFO=0x1001,OPEN=0x1002,CLOSE=0x1003,GET=0x1015,SET=0x1016;
+const OK=0x2001,ALREADY=0x201E,INVALID_VALUE=0x201C,SLOT=0xD18C,NAME=0xD18D;
+
+const PROPS=[
+{code:0xD190,key:"dynamicRange",label:"Dynamic Range",type:"u"},
+{code:0xD191,key:"drPriority",label:"D-Range Priority",type:"u"},
+{code:0xD192,key:"filmSimulation",label:"Film Simulation",type:"u"},
+{code:0xD193,key:"monoWC",label:"Mono Warm/Cool",type:"i"},
+{code:0xD194,key:"monoMG",label:"Mono Magenta/Green",type:"i"},
+{code:0xD195,key:"grain",label:"Grain",type:"u"},
+{code:0xD196,key:"colorChrome",label:"Color Chrome",type:"u"},
+{code:0xD197,key:"colorChromeBlue",label:"Color Chrome FX Blue",type:"u"},
+{code:0xD198,key:"smoothSkin",label:"Smooth Skin",type:"u"},
+{code:0xD199,key:"whiteBalance",label:"White Balance",type:"u"},
+{code:0xD19A,key:"wbRed",label:"WB Shift Red",type:"i"},
+{code:0xD19B,key:"wbBlue",label:"WB Shift Blue",type:"i"},
+{code:0xD19C,key:"kelvin",label:"Color Temperature",type:"u"},
+{code:0xD19D,key:"highlight",label:"Highlight",type:"i"},
+{code:0xD19E,key:"shadow",label:"Shadow",type:"i"},
+{code:0xD19F,key:"color",label:"Color",type:"i"},
+{code:0xD1A0,key:"sharpness",label:"Sharpness",type:"i"},
+{code:0xD1A1,key:"highIsoNR",label:"High ISO NR",type:"u"},
+{code:0xD1A2,key:"clarity",label:"Clarity",type:"i"}
+];
+const MONO=new Set([6,7,8,9,10,12,13,14,15]);
+const WRITE_ORDER=["filmSimulation","drPriority","dynamicRange","grain","colorChrome","colorChromeBlue","smoothSkin","whiteBalance","wbRed","wbBlue","kelvin","monoWC","monoMG","highlight","shadow","color","sharpness","highIsoNR","clarity"];
+
+let dev=null,iface=null,bin=null,bout=null,tx=1,sessionOwned=false,info=null,originalSelector=null;
+let mode="single",loadedRecipe=null,loadedPack=null,backup=null,lastReport=null;
+
+const $=id=>document.getElementById(id),sleep=ms=>new Promise(r=>setTimeout(r,ms)),hex=n=>"0x"+Number(n).toString(16).toUpperCase().padStart(4,"0");
+function val(id,t,c=""){let e=$(id);e.textContent=t;e.className="value "+c}
+function log(...p){$("log").textContent+=p.join(" ")+"\\n"}
+function setBar(id,p){$(id).style.width=Math.max(0,Math.min(100,p))+"%"}
+function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+val("https",window.isSecureContext?"✓":"✗",window.isSecureContext?"ok":"bad");
+val("webusb","usb"in navigator?"✓":"✗","usb"in navigator?"ok":"bad");
+
+function cmd(code,id,params=[]){let b=new ArrayBuffer(12+params.length*4),d=new DataView(b);d.setUint32(0,b.byteLength,true);d.setUint16(4,1,true);d.setUint16(6,code,true);d.setUint32(8,id,true);params.forEach((p,i)=>d.setUint32(12+i*4,p,true));return b}
+function dataPkt(code,id,payload){let src=new Uint8Array(payload.buffer,payload.byteOffset,payload.byteLength),b=new ArrayBuffer(12+src.length),d=new DataView(b);d.setUint32(0,b.byteLength,true);d.setUint16(4,2,true);d.setUint16(6,code,true);d.setUint32(8,id,true);new Uint8Array(b,12).set(src);return b}
+function hdr(d){if(!d||d.byteLength<12)throw Error("Short PTP container");return{len:d.getUint32(0,true),type:d.getUint16(4,true),code:d.getUint16(6,true),tx:d.getUint32(8,true)}}
+async function readContainer(){let r=await dev.transferIn(bin,16384);if(r.status!=="ok"||!r.data)throw Error("USB IN "+r.status);let f=new Uint8Array(r.data.buffer,r.data.byteOffset,r.data.byteLength),h=hdr(new DataView(f.buffer,f.byteOffset,f.byteLength)),all=new Uint8Array(h.len);all.set(f.slice(0,Math.min(f.length,h.len)));let pos=Math.min(f.length,h.len);while(pos<h.len){r=await dev.transferIn(bin,Math.min(16384,h.len-pos));if(r.status!=="ok"||!r.data)throw Error("USB IN continuation");let c=new Uint8Array(r.data.buffer,r.data.byteOffset,r.data.byteLength),n=Math.min(c.length,h.len-pos);all.set(c.slice(0,n),pos);pos+=n}return new DataView(all.buffer)}
+async function noData(code,params=[]){let id=tx++;await dev.transferOut(bout,cmd(code,id,params));let r=await readContainer(),h=hdr(r);if(h.type!==3||h.tx!==id)throw Error("Unexpected PTP response");return h.code}
+async function dataIn(code,params=[]){let id=tx++;await dev.transferOut(bout,cmd(code,id,params));let d=await readContainer(),dh=hdr(d),r=await readContainer(),rh=hdr(r);if(dh.type!==2||dh.tx!==id||rh.type!==3||rh.tx!==id||rh.code!==OK)throw Error("PTP "+hex(rh.code)+" for "+hex(code));return new DataView(d.buffer,d.byteOffset+12,dh.len-12)}
+async function dataOut(code,params,payload){let id=tx++;await dev.transferOut(bout,cmd(code,id,params));await dev.transferOut(bout,dataPkt(code,id,payload));let r=await readContainer(),h=hdr(r);if(h.type!==3||h.tx!==id)throw Error("Unexpected write response");return h.code}
+
+function str(d,s){let n=d.getUint8(s.o++);if(!n)return"";let out="";for(let i=0;i<n-1;i++){out+=String.fromCharCode(d.getUint16(s.o,true));s.o+=2}s.o+=2;return out}
+function arr16(d,s){let n=d.getUint32(s.o,true);s.o+=4;let a=[];for(let i=0;i<n;i++){a.push(d.getUint16(s.o,true));s.o+=2}return a}
+function parseInfo(d){let s={o:0},x={};x.std=d.getUint16(s.o,true);s.o+=2;x.vendor=d.getUint32(s.o,true);s.o+=4;x.vver=d.getUint16(s.o,true);s.o+=2;x.ext=str(d,s);x.mode=d.getUint16(s.o,true);s.o+=2;x.ops=arr16(d,s);x.events=arr16(d,s);x.properties=arr16(d,s);x.cap=arr16(d,s);x.img=arr16(d,s);x.manufacturer=str(d,s);x.model=str(d,s);x.deviceVersion=str(d,s);x.serial=str(d,s);return x}
+function ptpStr(d){if(!d||d.byteLength<1)return"";let o=0,n=d.getUint8(o++),s="";if(!n)return"";for(let i=0;i<n-1&&o+1<d.byteLength;i++){s+=String.fromCharCode(d.getUint16(o,true));o+=2}return s}
+function nameView(text){let s=String(text||"Untitled").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[‘’]/g,"'").replace(/[^A-Za-z0-9 !"#$%&'()*+,\-./:;<=>?@[\]\\^_{}|~]/g," ").replace(/\s+/g," ").trim().slice(0,25).trim()||"Untitled";let b=new ArrayBuffer(1+(s.length+1)*2),d=new DataView(b);d.setUint8(0,s.length+1);for(let i=0;i<s.length;i++)d.setUint16(1+i*2,s.charCodeAt(i),true);d.setUint16(1+s.length*2,0,true);return{name:s,view:d}}
+async function setProp(code,v,type="u"){let b=new ArrayBuffer(2),d=new DataView(b);if(type==="i")d.setInt16(0,v,true);else d.setUint16(0,v,true);return await dataOut(SET,[code],d)}
+async function setSlot(n){let rc=await setProp(SLOT,n,"u");if(rc!==OK)throw Error("Select C"+n+" returned "+hex(rc));await sleep(120)}
+async function getProp(code,type="u"){let d=await dataIn(GET,[code]);if(d.byteLength<2)throw Error("Short property "+hex(code));return type==="i"?d.getInt16(0,true):d.getUint16(0,true)}
+async function getName(){try{return ptpStr(await dataIn(GET,[NAME]))}catch(_){return""}}
+async function setName(text){let nv=nameView(text),rc=await dataOut(SET,[NAME],nv.view);return{rc,name:nv.name}}
+
+async function connect(){
+  $("log").textContent="";
+  try{
+    let allowed=(await navigator.usb.getDevices()).filter(d=>d.vendorId===FUJI);
+    dev=allowed[0]||await navigator.usb.requestDevice({filters:[{vendorId:FUJI}]});
+    await dev.open();if(!dev.configuration)await dev.selectConfiguration(1);
+    let found=null;for(const i of dev.configuration.interfaces)for(const a of i.alternates)if(!found&&a.interfaceClass===PTP)found={i,a};
+    if(!found)throw Error("No PTP interface");
+    iface=found.i.interfaceNumber;if(found.a.alternateSetting!==0)await dev.selectAlternateInterface(iface,found.a.alternateSetting);await dev.claimInterface(iface);
+    let active=dev.configuration.interfaces.find(i=>i.interfaceNumber===iface).alternate;
+    for(const ep of active.endpoints){if(ep.type==="bulk"&&ep.direction==="in")bin=ep.endpointNumber;if(ep.type==="bulk"&&ep.direction==="out")bout=ep.endpointNumber}
+    tx=1;let rc=await noData(OPEN,[1]);if(rc===OK)sessionOwned=true;else if(rc!==ALREADY)log("OPEN_SESSION",hex(rc),"- continuing if reads work");
+    info=parseInfo(await dataIn(GET_INFO));val("camera",(info.model||"Fujifilm")+" · FW "+(info.deviceVersion||"?"),"ok");
+    $("connect").disabled=true;$("disconnect").disabled=false;refreshReady();
+  }catch(e){val("camera","Connection failed","bad");log("CONNECT ERROR:",e.message);await disconnect(false)}
+}
+async function disconnect(ui=true){
+  try{if(dev&&sessionOwned)await noData(CLOSE)}catch(_){}
+  sessionOwned=false;try{if(dev&&iface!==null)await dev.releaseInterface(iface)}catch(_){}
+  try{if(dev&&dev.opened)await dev.close()}catch(_){}
+  dev=null;iface=null;bin=null;bout=null;info=null;
+  $("connect").disabled=false;$("disconnect").disabled=true;$("backupBtn").disabled=true;$("sendBtn").disabled=true;
+  if(ui)val("camera","Not connected");
+}
+
+function normalizeRecipe(obj){
+  if(obj.recipe)obj=obj.recipe;
+  if(!obj.name)throw Error("Recipe JSON needs a name.");
+  let settings=obj.settings||obj.raw||obj.values;
+  if(!settings)throw Error("Recipe JSON needs settings.");
+  return{name:obj.name,settings};
+}
+function normalizePack(obj){
+  let name=obj.name||"Unnamed Pack",src=obj.slots;
+  if(!src)throw Error("Pack JSON needs slots.");
+  let out={};
+  if(Array.isArray(src)){for(const x of src){let n=Number(String(x.slot).replace(/^C/i,""));out[n]=normalizeRecipe(x.recipe||x)}}
+  else{for(const [k,v] of Object.entries(src)){let n=Number(String(k).replace(/^C/i,""));out[n]=normalizeRecipe(v)}}
+  for(let n=1;n<=7;n++)if(!out[n])throw Error("Pack must contain C1 through C7.");
+  return{name,slots:out};
+}
+function parseFile(input,cb){let f=input.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{cb(JSON.parse(r.result))}catch(e){alert("JSON error: "+e.message)}};r.readAsText(f)}
+
+function recipeCard(r){
+  let s=r.settings||{};
+  return `<div class="box"><strong>${esc(r.name)}</strong><div class="chips">
+    <span class="chip">Film ${esc(s.filmSimulation??"—")}</span>
+    <span class="chip">DR ${esc(s.dynamicRange??"—")}</span>
+    <span class="chip">WB ${esc(s.whiteBalance??"—")}</span>
+  </div></div>`;
+}
+function renderPack(){
+  let h=`<div class="box"><strong>${esc(loadedPack.name)}</strong>`;
+  for(let n=1;n<=7;n++)h+=`<div class="slotline"><div class="slothead"><div class="badge">C${n}</div><strong>${esc(loadedPack.slots[n].name)}</strong></div></div>`;
+  h+="</div>";$("packPreview").innerHTML=h;
+}
+function setMode(m){
+  mode=m;backup=null;$("exportBackup").disabled=true;$("confirmSend").checked=false;$("confirmSend").disabled=true;$("sendBtn").disabled=true;
+  $("singleMode").classList.toggle("hidden",m!=="single");$("packMode").classList.toggle("hidden",m!=="pack");
+  $("tabSingle").classList.toggle("active",m==="single");$("tabPack").classList.toggle("active",m==="pack");refreshReady();
+}
+function refreshReady(){
+  let loaded=mode==="single"?!!loadedRecipe:!!loadedPack;
+  $("backupBtn").disabled=!(dev&&loaded);
+  $("backupText").textContent=dev?(loaded?"Ready to create backup.":"Load a recipe or pack."):"Connect camera and load a recipe or pack.";
+  renderPreflight();
+}
+function renderPreflight(){
+  let target=mode==="single"?(loadedRecipe?`${loadedRecipe.name} → C${$("singleSlot").value}`:"No recipe loaded"):(loadedPack?`${loadedPack.name} → C1–C7`:"No pack loaded");
+  $("preflight").innerHTML=`<strong>${esc(target)}</strong><p style="margin-bottom:0"><small>ISO dial: A recommended. If a target slot's stored ISO blocks DR200/DR400, the app will install the rest and flag only Dynamic Range for manual correction/retry.</small></p>`;
+}
+
+async function readSlot(n){
+  await setSlot(n);info=parseInfo(await dataIn(GET_INFO));
+  let raw={};for(const p of PROPS){try{raw[p.key]=await getProp(p.code,p.type)}catch(_){raw[p.key]=null}}
+  return{slot:n,name:(await getName())||("C"+n),raw};
+}
+async function makeBackup(){
+  $("backupBtn").disabled=true;setBar("backupBar",0);$("backupText").textContent="Reading camera…";
+  try{
+    try{originalSelector=await getProp(SLOT,"u")}catch(_){originalSelector=null}
+    let list=[];
+    if(mode==="single"){let n=Number($("singleSlot").value);list.push(await readSlot(n));setBar("backupBar",100)}
+    else{for(let n=1;n<=7;n++){list.push(await readSlot(n));setBar("backupBar",n/7*100);$("backupText").textContent=`Backing up C${n}…`}}
+    if(originalSelector!==null&&originalSelector>=0&&originalSelector<=7){try{await setSlot(originalSelector)}catch(_){}}
+    backup={format:"photoguide-fujifilm-pretransfer-backup",version:1,capturedAt:new Date().toISOString(),camera:{model:info.model,firmware:info.deviceVersion},mode,slots:list};
+    $("backupText").textContent="Backup ready."; $("exportBackup").disabled=false;$("confirmSend").disabled=false;
+  }catch(e){$("backupText").textContent="Backup failed: "+e.message;log("BACKUP ERROR:",e.message)}
+  finally{$("backupBtn").disabled=false}
+}
+
+function shouldWrite(p,s){
+  let v=s[p.key];
+  if(v===null||v===undefined)return{ok:false,why:"missing"};
+  if((p.key==="monoWC"||p.key==="monoMG")&&!MONO.has(s.filmSimulation))return{ok:false,why:"not applicable"};
+  if(["colorChrome","colorChromeBlue","color","wbRed","wbBlue"].includes(p.key)&&MONO.has(s.filmSimulation))return{ok:false,why:"suppressed for monochrome"};
+  if(p.key==="kelvin"&&s.whiteBalance!==32775)return{ok:false,why:"WB not Kelvin"};
+  if(p.key==="grain"&&!(v>=1&&v<=5))return{ok:false,why:"unsafe/unmapped grain"};
+  if(["dynamicRange","highlight","shadow"].includes(p.key)&&s.drPriority!==0)return{ok:false,why:"D-Range Priority controls this"};
+  return{ok:true};
+}
+function writeOrder(){
+  let map=Object.fromEntries(PROPS.map(p=>[p.key,p]));return WRITE_ORDER.map(k=>map[k]).filter(Boolean);
+}
+
+async function installRecipe(slotNo,recipe){
+  let target=recipe.settings||{};
+  await setSlot(slotNo);info=parseInfo(await dataIn(GET_INFO));
+  let writes=[],skips=[],errors=[],drBlocked=false;
+
+  for(const p of writeOrder()){
+    let d=shouldWrite(p,target);
+    if(!d.ok){skips.push({property:p.label,reason:d.why});continue}
+    let rc=await setProp(p.code,target[p.key],p.type);
+    if(rc===OK)writes.push({key:p.key,property:p.label,expected:target[p.key]});
+    else{
+      errors.push({key:p.key,property:p.label,response:hex(rc)});
+      if((p.key==="dynamicRange"||p.key==="drPriority")&&rc===INVALID_VALUE)drBlocked=true;
+    }
+    await sleep(45);
+  }
+  let nw=await setName(recipe.name);
+  if(nw.rc===OK)writes.push({key:"name",property:"Preset Name",expected:nw.name});
+  else errors.push({key:"name",property:"Preset Name",response:hex(nw.rc)});
+  await sleep(120);
+
+  let after=await readSlot(slotNo),verify=[];
+  for(const w of writes){let actual=w.key==="name"?after.name:after.raw[w.key];verify.push({...w,actual,match:actual===w.expected})}
+  return{slot:slotNo,recipe:recipe.name,writes,skips,errors,verify,drBlocked,after,success:errors.length===0&&verify.every(v=>v.match)};
+}
+
+async function send(){
+  if(!backup)return;
+  $("sendBtn").disabled=true;$("confirmSend").disabled=true;$("backupBtn").disabled=true;$("resultCard").classList.remove("hidden");$("resultSlots").innerHTML="";setBar("sendBar",0);
+  let results=[];
+  try{
+    if(mode==="single"){
+      let n=Number($("singleSlot").value);$("sendText").textContent=`Installing ${loadedRecipe.name} to C${n}…`;
+      results.push(await installRecipe(n,loadedRecipe));setBar("sendBar",100);
+    }else{
+      for(let n=1;n<=7;n++){let r=loadedPack.slots[n];$("sendText").textContent=`Installing C${n}: ${r.name}…`;results.push(await installRecipe(n,r));setBar("sendBar",n/7*100)}
+    }
+    if(originalSelector!==null&&originalSelector>=0&&originalSelector<=7){try{await setSlot(originalSelector)}catch(_){}}
+
+    lastReport={format:"photoguide-fujifilm-transfer-report",version:1,createdAt:new Date().toISOString(),camera:{model:info.model,firmware:info.deviceVersion},mode,results};
+    let full=results.filter(r=>r.success).length,dr=results.filter(r=>r.drBlocked).length,other=results.filter(r=>!r.success&&!r.drBlocked).length;
+    $("resultSummary").innerHTML=`<div class="box"><div class="grid">
+      <div>Fully verified</div><div class="ok">${full}/${results.length}</div>
+      <div>DR/ISO attention</div><div class="${dr?"warn":"ok"}">${dr}</div>
+      <div>Other errors</div><div class="${other?"bad":"ok"}">${other}</div>
+    </div></div>`;
+
+    for(const r of results){
+      let mism=r.verify.filter(v=>!v.match),cls=r.success?"ok":(r.drBlocked&&mism.length===0?"warn":"bad");
+      let msg=r.success?"✓ verified":r.drBlocked?"⚠ recipe installed; DR/ISO requires attention":"✗ check errors";
+      let extra=r.drBlocked?'<p class="warn"><small>Dynamic Range was rejected by the camera. Set this slot to ISO Auto or a compatible ISO, reconnect, and retry the recipe.</small></p>':"";
+      $("resultSlots").insertAdjacentHTML("beforeend",`<div class="slotline"><div class="slothead"><div class="badge">C${r.slot}</div><strong>${esc(r.recipe)}</strong></div><p class="${cls}"><strong>${msg}</strong></p>${extra}</div>`);
+    }
+    $("exportReport").disabled=false;$("sendText").textContent="Transfer complete.";
+  }catch(e){$("sendText").textContent="Transfer stopped: "+e.message;log("SEND ERROR:",e.message)}
+  finally{$("backupBtn").disabled=false;$("confirmSend").disabled=false;$("confirmSend").checked=false;$("sendBtn").disabled=true}
+}
+
+function downloadJson(obj,name){let blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+
+$("tabSingle").onclick=()=>setMode("single");$("tabPack").onclick=()=>setMode("pack");
+$("connect").onclick=connect;$("disconnect").onclick=()=>disconnect(true);
+$("recipeFile").onchange=()=>parseFile($("recipeFile"),o=>{try{loadedRecipe=normalizeRecipe(o);$("recipePreview").innerHTML=recipeCard(loadedRecipe);backup=null;$("exportBackup").disabled=true;refreshReady()}catch(e){alert(e.message)}});
+$("packFile").onchange=()=>parseFile($("packFile"),o=>{try{loadedPack=normalizePack(o);renderPack();backup=null;$("exportBackup").disabled=true;refreshReady()}catch(e){alert(e.message)}});
+$("singleSlot").onchange=()=>{backup=null;$("exportBackup").disabled=true;$("confirmSend").disabled=true;$("confirmSend").checked=false;refreshReady()};
+$("backupBtn").onclick=makeBackup;$("exportBackup").onclick=()=>downloadJson(backup,"X-T5_pretransfer_backup.json");
+$("confirmSend").onchange=()=>{$("sendBtn").disabled=!$("confirmSend").checked||!backup};
+$("sendBtn").onclick=send;$("exportReport").onclick=()=>downloadJson(lastReport,"X-T5_transfer_report.json");
+navigator.usb?.addEventListener("disconnect",async e=>{if(dev&&e.device===dev)await disconnect(true)});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+{
+  "name": "Example 7-Slot Pack",
+  "slots": {
+    "C1": {
+      "name": "Example Recipe 1",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C2": {
+      "name": "Example Recipe 2",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C3": {
+      "name": "Example Recipe 3",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C4": {
+      "name": "Example Recipe 4",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C5": {
+      "name": "Example Recipe 5",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C6": {
+      "name": "Example Recipe 6",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    },
+    "C7": {
+      "name": "Example Recipe 7",
+      "settings": {
+        "dynamicRange": 400,
+        "drPriority": 0,
+        "filmSimulation": 19,
+        "monoWC": 0,
+        "monoMG": 0,
+        "grain": 2,
+        "colorChrome": 2,
+        "colorChromeBlue": 2,
+        "smoothSkin": 1,
+        "whiteBalance": 4,
+        "wbRed": 2,
+        "wbBlue": -3,
+        "kelvin": 5200,
+        "highlight": -10,
+        "shadow": 0,
+        "color": 10,
+        "sharpness": 0,
+        "highIsoNR": 16384,
+        "clarity": -10
+      }
+    }
+  }
+}
